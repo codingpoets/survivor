@@ -30,7 +30,7 @@ object ConfigModule : Module() {
 class SurvivorScene() : Scene() {
     override suspend fun Container.sceneInit() {
         fun displaySimulation(sim: Simulation) {
-            // clear all objects from containter
+            // clear all objects from container
             removeChildren()
             // draw player
             solidRect(PLAYER_WIDTH, PLAYER_HEIGHT, if (sim.direction == Direction.LEFT) Colors.PURPLE else Colors.CYAN )

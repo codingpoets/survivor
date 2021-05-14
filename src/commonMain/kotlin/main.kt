@@ -29,47 +29,59 @@ object ConfigModule : Module() {
     }
 }
 
+fun Drawable.posX(direction: Direction): Int {
+    return when (direction) {
+        Direction.LEFT -> (SCENE_WIDTH / 2 - normalizedPosition * SCENE_WIDTH / 2).toInt()
+        Direction.RIGHT -> (SCENE_WIDTH / 2 + normalizedPosition * SCENE_WIDTH / 2).toInt()
+    }
+}
+
 class SurvivorScene() : Scene() {
     override suspend fun Container.sceneInit() {
-        fun displaySimulation(sim: Simulation) {
-            // clear all objects from container
-            removeChildren()
-            // draw player
-            solidRect(PLAYER_WIDTH, PLAYER_HEIGHT, if (sim.direction == Direction.LEFT) Colors.PURPLE else Colors.CYAN )
-                .position(SCENE_WIDTH / 2 - PLAYER_WIDTH / 2, SCENE_HEIGHT - PLAYER_HEIGHT)
-            // draw enemies in direction of view
-            sim.enemies[sim.direction]!!.forEach {
+        fun Direction.display(sim: Simulation) {
+            sim.enemies[this]!!.forEach {
                 val color = when (it.type) {
                     Enemy.Type.A -> Colors.RED
                     Enemy.Type.B -> Colors.BLUE
                     Enemy.Type.C -> Colors.GREEN
                 }
-                val posX = when (sim.direction) {
-                    Direction.LEFT -> (SCENE_WIDTH / 2 - it.normalizedPosition * SCENE_WIDTH / 2).toInt()
-                    Direction.RIGHT -> (SCENE_WIDTH / 2 + it.normalizedPosition * SCENE_WIDTH / 2).toInt()
-                }
-                solidRect(PLAYER_WIDTH, PLAYER_HEIGHT, color).position(posX, SCENE_HEIGHT - PLAYER_HEIGHT)
+                solidRect(PLAYER_WIDTH, PLAYER_HEIGHT, color).position(it.posX(this), SCENE_HEIGHT - PLAYER_HEIGHT)
             }
-
-            // draw bullets in direction of view
-            sim.bullets[Direction.LEFT]!!.forEach {
-                val posX = when (sim.direction) {
-                    Direction.LEFT -> (SCENE_WIDTH / 2 - it.normalizedPosition * SCENE_WIDTH / 2).toInt()
-                    Direction.RIGHT -> (SCENE_WIDTH / 2 + it.normalizedPosition * SCENE_WIDTH / 2).toInt()
-                }
+            sim.bullets[this]!!.forEach {
                 solidRect(PLAYER_WIDTH, PLAYER_HEIGHT / 2, Colors.YELLOW)
-                    .position(posX, SCENE_HEIGHT - PLAYER_HEIGHT / 2)
+                    .position(it.posX(this), SCENE_HEIGHT - PLAYER_HEIGHT / 2)
             }
+        }
+        fun displaySim(sim: Simulation, complete: Boolean = true) {
+            removeChildren()
+            // draw player
+            solidRect(PLAYER_WIDTH, PLAYER_HEIGHT, if (sim.direction == Direction.LEFT) Colors.PURPLE else Colors.CYAN )
+                .position(SCENE_WIDTH / 2 - PLAYER_WIDTH / 2, SCENE_HEIGHT - PLAYER_HEIGHT)
 
+            if (complete) {
+                Direction.LEFT.display(sim)
+                Direction.RIGHT.display(sim)
+            } else {
+                sim.direction.display(sim)
+            }
             // draw game info/stats
             text("Remaining rounds in rifle: ${sim.rounds}", textSize = 16.0, color = Colors.WHITE).position(20, 20)
             text("Score: ${sim.score}").position(20, 40)
-
         }
 
         val sim = Simulation()
         var gameStatus = GameStatus.RUNNING
-        addFixedUpdater(30.timesPerSecond) {
+
+        val actionInput = setOf(
+            Action.SHOOT,
+            Action.SHOOT,
+            Action.SHOOT,
+            Action.TURN,
+            Action.RELOAD,
+        )
+
+        // GAME
+        addFixedUpdater(20.timesPerSecond) {
             if (gameStatus != GameStatus.GAMEOVER) {
                 var action = Action.NOOP
 
@@ -82,13 +94,14 @@ class SurvivorScene() : Scene() {
                     action = Action.SHOOT
                 }
 
+                sim.run(actionInput.random())
                 sim.run(action)
-//                sim.run(actionInput.random())
-                println(sim)
-                displaySimulation(sim)
                 gameStatus = sim.gameStatus
+
+                displaySim(sim, false)
+
             } else {
-                text("GAME OVER", textSize = 40.0).also { it.position(SCENE_WIDTH / 2 - it.width / 2, SCENE_HEIGHT / 2 - it.height / 2) }
+                text("GAME OVER | Score: ${sim.score}", textSize = 40.0).also { it.position(SCENE_WIDTH / 2 - it.width / 2, SCENE_HEIGHT / 2 - it.height / 2) }
             }
         }
     }

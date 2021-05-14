@@ -1,5 +1,7 @@
 import com.soywiz.klock.timesPerSecond
+import com.soywiz.korev.Key
 import com.soywiz.korge.*
+import com.soywiz.korge.input.keys
 import com.soywiz.korge.scene.Module
 import com.soywiz.korge.scene.Scene
 import com.soywiz.korge.view.*
@@ -35,34 +37,28 @@ class SurvivorScene() : Scene() {
             // draw player
             solidRect(PLAYER_WIDTH, PLAYER_HEIGHT, if (sim.direction == Direction.LEFT) Colors.PURPLE else Colors.CYAN )
                 .position(SCENE_WIDTH / 2 - PLAYER_WIDTH / 2, SCENE_HEIGHT - PLAYER_HEIGHT)
-            // draw enemies
-            sim.enemies[Direction.LEFT]!!.forEach {
+            // draw enemies in direction of view
+            sim.enemies[sim.direction]!!.forEach {
                 val color = when (it.type) {
                     Enemy.Type.A -> Colors.RED
                     Enemy.Type.B -> Colors.BLUE
                     Enemy.Type.C -> Colors.GREEN
                 }
-                solidRect(PLAYER_WIDTH, PLAYER_HEIGHT, color)
-                    .position((SCENE_WIDTH / 2 - it.normalizedPosition * SCENE_WIDTH / 2).toInt(), SCENE_HEIGHT - PLAYER_HEIGHT)
-            }
-            sim.enemies[Direction.RIGHT]!!.forEach {
-                val color = when (it.type) {
-                    Enemy.Type.A -> Colors.RED
-                    Enemy.Type.B -> Colors.BLUE
-                    Enemy.Type.C -> Colors.GREEN
+                val posX = when (sim.direction) {
+                    Direction.LEFT -> (SCENE_WIDTH / 2 - it.normalizedPosition * SCENE_WIDTH / 2).toInt()
+                    Direction.RIGHT -> (SCENE_WIDTH / 2 + it.normalizedPosition * SCENE_WIDTH / 2).toInt()
                 }
-                solidRect(PLAYER_WIDTH, PLAYER_HEIGHT, color)
-                    .position((SCENE_WIDTH / 2 + it.normalizedPosition * SCENE_WIDTH / 2).toInt(), SCENE_HEIGHT - PLAYER_HEIGHT)
+                solidRect(PLAYER_WIDTH, PLAYER_HEIGHT, color).position(posX, SCENE_HEIGHT - PLAYER_HEIGHT)
             }
 
-            // draw bullets
+            // draw bullets in direction of view
             sim.bullets[Direction.LEFT]!!.forEach {
+                val posX = when (sim.direction) {
+                    Direction.LEFT -> (SCENE_WIDTH / 2 - it.normalizedPosition * SCENE_WIDTH / 2).toInt()
+                    Direction.RIGHT -> (SCENE_WIDTH / 2 + it.normalizedPosition * SCENE_WIDTH / 2).toInt()
+                }
                 solidRect(PLAYER_WIDTH, PLAYER_HEIGHT / 2, Colors.YELLOW)
-                    .position((SCENE_WIDTH / 2 - it.normalizedPosition * SCENE_WIDTH / 2).toInt(), SCENE_HEIGHT - PLAYER_HEIGHT / 2)
-            }
-            sim.bullets[Direction.RIGHT]!!.forEach {
-                solidRect(PLAYER_WIDTH, PLAYER_HEIGHT / 2, Colors.YELLOW)
-                    .position((SCENE_WIDTH / 2 + it.normalizedPosition * SCENE_WIDTH / 2).toInt(), SCENE_HEIGHT - PLAYER_HEIGHT / 2)
+                    .position(posX, SCENE_HEIGHT - PLAYER_HEIGHT / 2)
             }
 
             // draw game info/stats
@@ -72,20 +68,22 @@ class SurvivorScene() : Scene() {
         }
 
         val sim = Simulation()
-        val actionInput = listOf(
-                Action.SHOOT,
-                Action.SHOOT,
-                Action.SHOOT,
-                Action.SHOOT,
-                Action.SHOOT,
-                Action.TURN,
-                Action.TURN,
-                Action.RELOAD,
-        )
         var gameStatus = GameStatus.RUNNING
         addFixedUpdater(30.timesPerSecond) {
             if (gameStatus != GameStatus.GAMEOVER) {
-                sim.run(actionInput.random())
+                var action = Action.NOOP
+
+                keys.typed(Key.SPACE) {
+                    print("SPACE Key pressed...")
+                    action = Action.SHOOT
+                }
+                if (views.input.keys[Key.SPACE]) {
+                    print("SPACE Key pressed...")
+                    action = Action.SHOOT
+                }
+
+                sim.run(action)
+//                sim.run(actionInput.random())
                 println(sim)
                 displaySimulation(sim)
                 gameStatus = sim.gameStatus

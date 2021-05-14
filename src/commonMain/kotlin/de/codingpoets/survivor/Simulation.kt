@@ -1,3 +1,5 @@
+package de.codingpoets.survivor
+
 import kotlin.math.log10
 
 const val ANSI_RESET = "\u001B[0m"
@@ -29,7 +31,7 @@ interface Drawable {
     val normalizedPosition get() = position.toDouble() / START_DISTANCE
 }
 
-class Enemy(val type: Type): Drawable  {
+class Enemy(val type: Type): Drawable {
     enum class Type {
         A, B, C
     }
@@ -72,12 +74,12 @@ class SimpleBullet(): Drawable {
 }
 
 data class Status(
-        val rounds: Int,
-        val timeSinceLastTurn: Int,
-        val enemyDistance: Int?,
-        val enemyType: Enemy.Type?,
-        val delay: Int,
-        val gameStatus: GameStatus,
+    val rounds: Int,
+    val timeSinceLastTurn: Int,
+    val enemyDistance: Int?,
+    val enemyType: Enemy.Type?,
+    val delay: Int,
+    val gameStatus: GameStatus,
         )
 
 enum class Action(val delay: Int) {
@@ -127,6 +129,20 @@ class Simulation {
 
     private fun closestEnemy(direction: Direction): Enemy? {
         return enemies[direction]!!.minByOrNull { it.position }
+    }
+
+    private fun enemyDistance(enemy: Enemy) : Int {
+        return enemy.position
+    }
+
+    fun getSensorState() : SensorState {
+        val enemy =  closestEnemy(direction)
+        return SensorState(
+            rounds,
+            timeSinceLastTurn,
+            enemy?.type?.ordinal ?: -1,
+            enemy?.position ?: -1
+        )
     }
 
     private fun startNewEnemyTimer() {

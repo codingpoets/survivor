@@ -13,26 +13,26 @@ import java.io.File
 
 private const val SEED = 12L
 
-private val myNN = Sequential.of(
+fun getNN(): Sequential {
+    return Sequential.of(
         Input(4),
         Dense(
-                outputSize = 4,
-                activation = Activations.Sigmoid,
-                kernelInitializer = GlorotNormal(SEED),
-                biasInitializer = Constant(0.1f)
+            outputSize = 4,
+            activation = Activations.Sigmoid,
+            kernelInitializer = GlorotNormal(SEED),
+            biasInitializer = Constant(0.1f)
         ),
-)
+    )
+}
 
-fun Sequential.compileLoadAndPredict(model: File = File("Model"), inputData: FloatArray): Int {
-    use {
-        it.compile(
-            optimizer = Adam(),
-            loss = Losses.SOFT_MAX_CROSS_ENTROPY_WITH_LOGITS,
-            metric = Metrics.ACCURACY,
-        )
-        it.loadWeights(model)
-        return it.predict(inputData)
-    }
+
+fun Sequential.compileAndLoad(model: File = File("Model")) = apply {
+    compile(
+        optimizer = Adam(),
+        loss = Losses.SOFT_MAX_CROSS_ENTROPY_WITH_LOGITS,
+        metric = Metrics.ACCURACY,
+    )
+    loadWeights(model)
 }
 
 fun Sequential.compileInitAndSaveModel(model: File = File("Model")) {
@@ -48,6 +48,6 @@ fun Sequential.compileInitAndSaveModel(model: File = File("Model")) {
 }
 
 fun main() {
-    val label = myNN.compileLoadAndPredict(File("Model"), floatArrayOf(0.2f, 0.5f, 0.2f, 0.5f))
-    println("Predicted label is: $label")
+    val aiModel = getNN().compileAndLoad(File("Model"))
+    println("Predicted label is: ${aiModel.predict(floatArrayOf(0.2f, 0.5f, 0.2f, 0.5f))}")
 }
